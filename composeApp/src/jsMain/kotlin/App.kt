@@ -36,7 +36,6 @@ fun App() {
     var imageUrl by remember { mutableStateOf<String?>(null) }
     var palette by remember { mutableStateOf<Palette?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isDragging by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
     suspend fun loadImage(file: File) {
@@ -73,23 +72,31 @@ fun App() {
     }
     
     // Global drag and drop on document body
+    // Uses CSS class instead of Compose state to avoid re-render flicker in Safari
     DisposableEffect(Unit) {
+        var dragCounter = 0
+        
         val onDragOver: (DragEvent) -> Unit = { event ->
             event.preventDefault()
         }
         val onDragEnter: (DragEvent) -> Unit = { event ->
             event.preventDefault()
-            isDragging = true
+            dragCounter++
+            if (dragCounter == 1) {
+                document.body?.classList?.add("dragging")
+            }
         }
         val onDragLeave: (DragEvent) -> Unit = { event ->
             event.preventDefault()
-            if (event.relatedTarget == null) {
-                isDragging = false
+            dragCounter--
+            if (dragCounter == 0) {
+                document.body?.classList?.remove("dragging")
             }
         }
         val onDrop: (DragEvent) -> Unit = { event ->
             event.preventDefault()
-            isDragging = false
+            dragCounter = 0
+            document.body?.classList?.remove("dragging")
             val file = event.dataTransfer?.files?.get(0) as? File
             if (file != null && file.type.startsWith("image/")) {
                 scope.launch { loadImage(file) }
@@ -152,6 +159,22 @@ fun App() {
             justifyContent(JustifyContent.Center)
             alignItems(AlignItems.FlexStart)
         }
+        ".drop-zone" {
+            property("background-color", "var(--bg-secondary)")
+            property("border", "2px dashed var(--border-color)")
+            property("transition", "background-color 0.2s ease, border-color 0.2s ease")
+        }
+        "body.dragging .drop-zone" {
+            property("background-color", "var(--bg-secondary-hover)")
+            property("border-color", "var(--border-color-hover)")
+        }
+        ".drag-overlay" {
+            opacity(0)
+            property("transition", "opacity 0.2s ease")
+        }
+        "body.dragging .drag-overlay" {
+            opacity(1)
+        }
     }
 
     Div({
@@ -203,17 +226,15 @@ fun App() {
 
         // Image Drop Zone / Display
         Div({
+            classes("drop-zone")
             style {
                 width(100.percent)
                 maxWidth(600.px)
                 property("align-self", "center")
-                property("background-color", if (isDragging) "var(--bg-secondary-hover)" else "var(--bg-secondary)")
                 borderRadius(24.px)
                 overflow("hidden")
-                property("border", "2px dashed ${if (isDragging) "var(--border-color-hover)" else "var(--border-color)"}")
                 position(Position.Relative)
                 cursor("pointer")
-                property("transition", "all 0.2s ease")
             }
             
             onClick {
@@ -230,46 +251,46 @@ fun App() {
                         maxHeight(400.px)
                         property("object-fit", "contain")
                         display(DisplayStyle.Block)
+                        property("pointer-events", "none")
                     }
                 }
-                // Drag overlay
-                if (isDragging) {
-                    Div({
-                        style {
-                            position(Position.Absolute)
-                            top(0.px)
-                            left(0.px)
-                            right(0.px)
-                            bottom(0.px)
-                            backgroundColor(Color("rgba(0,0,0,0.7)"))
-                            display(DisplayStyle.Flex)
-                            justifyContent(JustifyContent.Center)
-                            alignItems(AlignItems.Center)
-                            color(Color.white)
-                            fontSize(1.2.cssRem)
-                            fontWeight("bold")
-                            property("pointer-events", "none")
-                        }
-                    }) {
-                        Text("Drop to replace")
+                // Drag overlay (visibility controlled by CSS)
+                Div({
+                    classes("drag-overlay")
+                    style {
+                        position(Position.Absolute)
+                        top(0.px)
+                        left(0.px)
+                        right(0.px)
+                        bottom(0.px)
+                        backgroundColor(Color("rgba(0,0,0,0.7)"))
+                        display(DisplayStyle.Flex)
+                        justifyContent(JustifyContent.Center)
+                        alignItems(AlignItems.Center)
+                        color(Color.white)
+                        fontSize(1.2.cssRem)
+                        fontWeight("bold")
+                        property("pointer-events", "none")
                     }
-                } else {
-                    // Change Image Overlay
-                    Div({
-                        style {
-                            position(Position.Absolute)
-                            bottom(16.px)
-                            right(16.px)
-                            backgroundColor(Color("rgba(0,0,0,0.7)"))
-                            color(Color.white)
-                            padding(8.px, 16.px)
-                            borderRadius(20.px)
-                            fontSize(0.9.cssRem)
-                            fontWeight("bold")
-                        }
-                    }) {
-                        Text("Change Image")
+                }) {
+                    Text("Drop to replace")
+                }
+                // Change Image Overlay
+                Div({
+                    style {
+                        position(Position.Absolute)
+                        bottom(16.px)
+                        right(16.px)
+                        backgroundColor(Color("rgba(0,0,0,0.7)"))
+                        color(Color.white)
+                        padding(8.px, 16.px)
+                        borderRadius(20.px)
+                        fontSize(0.9.cssRem)
+                        fontWeight("bold")
+                        property("pointer-events", "none")
                     }
+                }) {
+                    Text("Change Image")
                 }
             } else {
                 Div({
@@ -280,6 +301,7 @@ fun App() {
                         justifyContent(JustifyContent.Center)
                         alignItems(AlignItems.Center)
                         gap(16.px)
+                        property("pointer-events", "none")
                     }
                 }) {
                     Text("Drag an image (or click to upload)")
