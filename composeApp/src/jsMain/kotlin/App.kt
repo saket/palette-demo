@@ -66,7 +66,7 @@ fun App() {
                     color(Color("#ffffff"))
                 }
             }) {
-                Text("Palette Generator")
+                Text("palette")
             }
             P({
                 style {
@@ -75,7 +75,16 @@ fun App() {
                     margin(0.px)
                 }
             }) {
-                Text("Extract beautiful color schemes from your images.")
+                Text("A demo of the ")
+                A(href = "https://developer.android.com/develop/ui/views/graphics/palette-colors", {
+                    style {
+                        color(Color("#aaaaaa"))
+                    }
+                    attr("target", "_blank")
+                }) {
+                    Text("Jetpack Palette")
+                }
+                Text(" library")
             }
         }
 
