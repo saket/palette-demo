@@ -12,6 +12,10 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.accept
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.yield
+import org.w3c.dom.url.URL
+import org.w3c.files.File
+import org.w3c.files.get
 
 fun main() {
     // We still need Skia loaded for kmpalette to work, even if we render DOM
@@ -26,7 +30,20 @@ fun main() {
 fun App() {
     var imageUrl by remember { mutableStateOf<String?>(null) }
     var palette by remember { mutableStateOf<Palette?>(null) }
+    var isDragging by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    
+    suspend fun loadImage(file: File) {
+        imageUrl = URL.createObjectURL(file)
+        palette = null // Reset swatches immediately
+        try {
+            val bytes = file.readBytes()
+            val bitmap = ByteArrayLoader.load(bytes)
+            palette = Palette.from(bitmap).generate()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 
     // Global Styles
     Style {
@@ -93,10 +110,10 @@ fun App() {
             style {
                 width(100.percent)
                 maxWidth(600.px)
-                backgroundColor(Color("#1e1e1e"))
+                backgroundColor(if (isDragging) Color("#2a2a2a") else Color("#1e1e1e"))
                 borderRadius(24.px)
                 overflow("hidden")
-                border(2.px, LineStyle.Dashed, Color("#333333"))
+                border(2.px, LineStyle.Dashed, if (isDragging) Color("#666666") else Color("#333333"))
                 position(Position.Relative)
                 cursor("pointer")
                 property("transition", "all 0.2s ease")
@@ -104,17 +121,31 @@ fun App() {
             
             onClick {
                 scope.launch {
-                    val pair = pickImage()
-                    if (pair != null) {
-                        imageUrl = pair.first
-                        try {
-                            // kmpalette logic (Headless)
-                            val bitmap = ByteArrayLoader.load(pair.second)
-                            palette = Palette.from(bitmap).generate()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
+                    pickImage()?.let { loadImage(it.file) }
+                }
+            }
+            
+            onDragOver { event ->
+                event.preventDefault()
+            }
+            
+            onDragEnter { event ->
+                event.preventDefault()
+                isDragging = true
+            }
+            
+            onDragLeave { event ->
+                event.preventDefault()
+                isDragging = false
+            }
+            
+            onDrop { event ->
+                event.preventDefault()
+                isDragging = false
+                
+                val file = event.dataTransfer?.files?.get(0) as? File
+                if (file != null && file.type.startsWith("image/")) {
+                    scope.launch { loadImage(file) }
                 }
             }
         }) {
@@ -122,26 +153,50 @@ fun App() {
                 Img(src = imageUrl!!) {
                     style {
                         width(100.percent)
+                        minHeight(200.px)
                         maxHeight(400.px)
                         property("object-fit", "contain")
                         display(DisplayStyle.Block)
                     }
                 }
-                // Change Image Overlay
-                Div({
-                    style {
-                        position(Position.Absolute)
-                        bottom(16.px)
-                        right(16.px)
-                        backgroundColor(Color("rgba(0,0,0,0.7)"))
-                        color(Color.white)
-                        padding(8.px, 16.px)
-                        borderRadius(20.px)
-                        fontSize(0.9.cssRem)
-                        fontWeight("bold")
+                // Drag overlay
+                if (isDragging) {
+                    Div({
+                        style {
+                            position(Position.Absolute)
+                            top(0.px)
+                            left(0.px)
+                            right(0.px)
+                            bottom(0.px)
+                            backgroundColor(Color("rgba(0,0,0,0.7)"))
+                            display(DisplayStyle.Flex)
+                            justifyContent(JustifyContent.Center)
+                            alignItems(AlignItems.Center)
+                            color(Color.white)
+                            fontSize(1.2.cssRem)
+                            fontWeight("bold")
+                            property("pointer-events", "none")
+                        }
+                    }) {
+                        Text("Drop to replace")
                     }
-                }) {
-                    Text("Change Image")
+                } else {
+                    // Change Image Overlay
+                    Div({
+                        style {
+                            position(Position.Absolute)
+                            bottom(16.px)
+                            right(16.px)
+                            backgroundColor(Color("rgba(0,0,0,0.7)"))
+                            color(Color.white)
+                            padding(8.px, 16.px)
+                            borderRadius(20.px)
+                            fontSize(0.9.cssRem)
+                            fontWeight("bold")
+                        }
+                    }) {
+                        Text("Change Image")
+                    }
                 }
             } else {
                 Div({
