@@ -32,18 +32,41 @@ fun main() {
 fun App() {
     var imageUrl by remember { mutableStateOf<String?>(null) }
     var palette by remember { mutableStateOf<Palette?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isDragging by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
     suspend fun loadImage(file: File) {
         imageUrl = URL.createObjectURL(file)
-        palette = null // Reset swatches immediately
+        palette = null
+        errorMessage = null
         try {
             val bytes = file.readBytes()
+            console.log("Image bytes loaded: ${bytes.size}")
             val bitmap = ByteArrayLoader.load(bytes)
-            palette = Palette.from(bitmap).generate()
+            console.log("Bitmap loaded: ${bitmap.width}x${bitmap.height}")
+            val generatedPalette = Palette.from(bitmap).generate()
+            console.log("Palette generated. Swatches: vibrant=${generatedPalette.vibrantSwatch}, muted=${generatedPalette.mutedSwatch}, dominant=${generatedPalette.dominantSwatch}")
+            
+            val hasSwatches = listOfNotNull(
+                generatedPalette.vibrantSwatch,
+                generatedPalette.darkVibrantSwatch,
+                generatedPalette.lightVibrantSwatch,
+                generatedPalette.mutedSwatch,
+                generatedPalette.darkMutedSwatch,
+                generatedPalette.lightMutedSwatch,
+                generatedPalette.dominantSwatch
+            ).isNotEmpty()
+            
+            if (hasSwatches) {
+                palette = generatedPalette
+            } else {
+                errorMessage = "No colors could be extracted from this image."
+            }
         } catch (e: Exception) {
+            console.error("Error loading image: ${e.message}")
             e.printStackTrace()
+            errorMessage = "Error: ${e.message}"
         }
     }
     
@@ -226,6 +249,24 @@ fun App() {
                 }) {
                     Text("Click to upload image")
                 }
+            }
+        }
+
+        // Error message
+        if (errorMessage != null) {
+            Div({
+                style {
+                    backgroundColor(Color("#2a1a1a"))
+                    border(1.px, LineStyle.Solid, Color("#ff6b6b"))
+                    borderRadius(12.px)
+                    padding(16.px, 24.px)
+                    color(Color("#ff6b6b"))
+                    width(100.percent)
+                    maxWidth(600.px)
+                    textAlign("center")
+                }
+            }) {
+                Text(errorMessage!!)
             }
         }
 
