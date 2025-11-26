@@ -282,7 +282,7 @@ fun App() {
                         gap(16.px)
                     }
                 }) {
-                    Text("Click to upload image")
+                    Text("Drag an image (or click to upload)")
                 }
             }
         }
@@ -404,10 +404,10 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
                     color(Color(textColor))
                 }
             }) {
-                Text(if (copied) "Copied!" else hexColor)
+                Text(hexColor)
             }
             
-            // Material 3 content_copy icon (SVG)
+            // Material 3 icon: checkmark when copied, clipboard otherwise
             Svg(viewBox = "0 0 24 24", {
                 style {
                     width(18.px)
@@ -415,7 +415,13 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
                     property("fill", textColorMuted)
                 }
             }) {
-                Path("M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z")
+                if (copied) {
+                    // Material 3 check icon
+                    Path("M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z")
+                } else {
+                    // Material 3 content_copy icon
+                    Path("M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z")
+                }
             }
         }
     }
