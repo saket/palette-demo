@@ -13,6 +13,8 @@ import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.accept
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
+import kotlinx.browser.window
+import org.w3c.dom.DragEvent
 import org.w3c.dom.url.URL
 import org.w3c.files.File
 import org.w3c.files.get
@@ -42,6 +44,43 @@ fun App() {
             palette = Palette.from(bitmap).generate()
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+    
+    // Global drag and drop on document body
+    DisposableEffect(Unit) {
+        val onDragOver: (DragEvent) -> Unit = { event ->
+            event.preventDefault()
+        }
+        val onDragEnter: (DragEvent) -> Unit = { event ->
+            event.preventDefault()
+            isDragging = true
+        }
+        val onDragLeave: (DragEvent) -> Unit = { event ->
+            event.preventDefault()
+            if (event.relatedTarget == null) {
+                isDragging = false
+            }
+        }
+        val onDrop: (DragEvent) -> Unit = { event ->
+            event.preventDefault()
+            isDragging = false
+            val file = event.dataTransfer?.files?.get(0) as? File
+            if (file != null && file.type.startsWith("image/")) {
+                scope.launch { loadImage(file) }
+            }
+        }
+        
+        document.body?.addEventListener("dragover", onDragOver.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+        document.body?.addEventListener("dragenter", onDragEnter.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+        document.body?.addEventListener("dragleave", onDragLeave.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+        document.body?.addEventListener("drop", onDrop.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+        
+        onDispose {
+            document.body?.removeEventListener("dragover", onDragOver.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+            document.body?.removeEventListener("dragenter", onDragEnter.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+            document.body?.removeEventListener("dragleave", onDragLeave.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+            document.body?.removeEventListener("drop", onDrop.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         }
     }
 
@@ -122,30 +161,6 @@ fun App() {
             onClick {
                 scope.launch {
                     pickImage()?.let { loadImage(it.file) }
-                }
-            }
-            
-            onDragOver { event ->
-                event.preventDefault()
-            }
-            
-            onDragEnter { event ->
-                event.preventDefault()
-                isDragging = true
-            }
-            
-            onDragLeave { event ->
-                event.preventDefault()
-                isDragging = false
-            }
-            
-            onDrop { event ->
-                event.preventDefault()
-                isDragging = false
-                
-                val file = event.dataTransfer?.files?.get(0) as? File
-                if (file != null && file.type.startsWith("image/")) {
-                    scope.launch { loadImage(file) }
                 }
             }
         }) {
