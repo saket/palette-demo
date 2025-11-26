@@ -12,7 +12,7 @@ import org.w3c.files.get
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-actual suspend fun pickImage(): Pair<String, ByteArray>? = suspendCancellableCoroutine { cont ->
+suspend fun pickImage(): Pair<String, ByteArray>? = suspendCancellableCoroutine { cont ->
     val input = document.createElement("input") as HTMLInputElement
     input.type = "file"
     input.accept = "image/*"

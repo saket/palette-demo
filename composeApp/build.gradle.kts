@@ -1,4 +1,3 @@
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
@@ -15,7 +14,6 @@ kotlin {
                 outputFileName = "composeApp.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
                     static = (static ?: mutableListOf()).apply {
-                        // Serve sources to allow debugging
                         add(project.rootDir.path)
                     }
                 }
@@ -25,26 +23,20 @@ kotlin {
     }
     
     sourceSets {
-        
-        commonMain.dependencies {
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
-            implementation(compose.ui)
-            implementation(compose.components.resources)
-            implementation(compose.components.uiToolingPreview)
-            
-            implementation(libs.kmpalette.core)
-            implementation(libs.kmpalette.extensions.bytearray) // Keeping for now just in case
-            
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network.ktor)
-            implementation(libs.ktor.client.core)
-        }
-        
         val jsMain by getting {
             dependencies {
-                // Web specific dependencies if any
+                // Compose HTML for DOM rendering
+                implementation(libs.compose.html.core)
+                
+                // Compose UI only for ImageBitmap (used by kmpalette)
+                implementation(compose.ui)
+                
+                // Coroutines
+                implementation(libs.kotlin.coroutines.core)
+                
+                // kmpalette
+                implementation(libs.kmpalette.core)
+                implementation(libs.kmpalette.extensions.bytearray)
             }
         }
     }
