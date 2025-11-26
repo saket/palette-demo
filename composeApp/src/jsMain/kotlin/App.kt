@@ -109,20 +109,48 @@ fun App() {
         }
     }
 
-    // Global Styles
+    // Global Styles with theme support
     Style {
+        ":root" {
+            property("--bg-primary", "#1a1a1a")
+            property("--bg-secondary", "#2a2a2a")
+            property("--bg-secondary-hover", "#3a3a3a")
+            property("--text-primary", "#ffffff")
+            property("--text-secondary", "#aaaaaa")
+            property("--border-color", "#666666")
+            property("--border-color-hover", "#999999")
+            property("--error-bg", "#2a1a1a")
+            property("--error-border", "#ff6b6b")
+            property("--error-text", "#ff6b6b")
+        }
+        media("(prefers-color-scheme: light)") {
+            ":root" {
+                property("--bg-primary", "#f5f5f5")
+                property("--bg-secondary", "#ffffff")
+                property("--bg-secondary-hover", "#f0f0f0")
+                property("--text-primary", "#121212")
+                property("--text-secondary", "#666666")
+                property("--border-color", "#999999")
+                property("--border-color-hover", "#666666")
+                property("--error-bg", "#fff0f0")
+                property("--error-border", "#dc3545")
+                property("--error-text", "#dc3545")
+            }
+        }
         "body" {
             fontFamily("Space Grotesk", "system-ui", "sans-serif")
-            backgroundColor(Color("#121212"))
-            color(Color("#ffffff"))
+            property("background-color", "var(--bg-primary)")
+            property("color", "var(--text-primary)")
             margin(0.px)
             padding(0.px)
             minHeight(100.vh)
         }
         "#root" {
             width(100.percent)
+            minHeight(100.vh)
             display(DisplayStyle.Flex)
             justifyContent(JustifyContent.Center)
+            alignItems(AlignItems.FlexStart)
         }
     }
 
@@ -133,7 +161,7 @@ fun App() {
             alignItems(AlignItems.Stretch)
             maxWidth(1000.px)
             width(100.percent)
-            padding(5.percent)
+            property("padding", "1.5rem 5%")
             gap(2.cssRem)
             property("box-sizing", "border-box")
         }
@@ -148,7 +176,7 @@ fun App() {
                 style {
                     property("font-size", clamp(2.cssRem, 5.vw, 3.cssRem))
                     marginBottom(0.5.cssRem)
-                    color(Color("#ffffff"))
+                    property("color", "var(--text-primary)")
                 }
             }) {
                 Text("palette")
@@ -156,14 +184,14 @@ fun App() {
             P({
                 style {
                     fontSize(1.1.cssRem)
-                    color(Color("#aaaaaa"))
+                    property("color", "var(--text-secondary)")
                     margin(0.px)
                 }
             }) {
                 Text("A demo of the ")
                 A(href = "https://developer.android.com/develop/ui/views/graphics/palette-colors", {
                     style {
-                        color(Color("#aaaaaa"))
+                        property("color", "var(--text-secondary)")
                     }
                     attr("target", "_blank")
                 }) {
@@ -179,10 +207,10 @@ fun App() {
                 width(100.percent)
                 maxWidth(600.px)
                 property("align-self", "center")
-                backgroundColor(if (isDragging) Color("#2a2a2a") else Color("#1e1e1e"))
+                property("background-color", if (isDragging) "var(--bg-secondary-hover)" else "var(--bg-secondary)")
                 borderRadius(24.px)
                 overflow("hidden")
-                border(2.px, LineStyle.Dashed, if (isDragging) Color("#666666") else Color("#333333"))
+                property("border", "2px dashed ${if (isDragging) "var(--border-color-hover)" else "var(--border-color)"}")
                 position(Position.Relative)
                 cursor("pointer")
                 property("transition", "all 0.2s ease")
@@ -263,11 +291,11 @@ fun App() {
         if (errorMessage != null) {
             Div({
                 style {
-                    backgroundColor(Color("#2a1a1a"))
-                    border(1.px, LineStyle.Solid, Color("#ff6b6b"))
+                    property("background-color", "var(--error-bg)")
+                    property("border", "1px solid var(--error-border)")
                     borderRadius(12.px)
                     padding(16.px, 24.px)
-                    color(Color("#ff6b6b"))
+                    property("color", "var(--error-text)")
                     width(100.percent)
                     maxWidth(600.px)
                     property("align-self", "center")
@@ -329,7 +357,7 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
             borderRadius(16.px)
             overflow("hidden")
             cursor("pointer")
-            property("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
+
             property("transition", "transform 0.2s ease")
             backgroundColor(Color("rgb($r, $g, $b)"))
             padding(16.px)
