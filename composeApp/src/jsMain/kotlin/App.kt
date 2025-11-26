@@ -19,6 +19,9 @@ import org.w3c.dom.url.URL
 import org.w3c.files.File
 import org.w3c.files.get
 
+fun clamp(min: CSSNumeric, preferred: CSSNumeric, max: CSSNumeric): String =
+    "clamp($min, $preferred, $max)"
+
 fun main() {
     // We still need Skia loaded for kmpalette to work, even if we render DOM
     onWasmReady {
@@ -42,11 +45,10 @@ fun App() {
         errorMessage = null
         try {
             val bytes = file.readBytes()
-            console.log("Image bytes loaded: ${bytes.size}")
             val bitmap = ByteArrayLoader.load(bytes)
-            console.log("Bitmap loaded: ${bitmap.width}x${bitmap.height}")
-            val generatedPalette = Palette.from(bitmap).generate()
-            console.log("Palette generated. Swatches: vibrant=${generatedPalette.vibrantSwatch}, muted=${generatedPalette.mutedSwatch}, dominant=${generatedPalette.dominantSwatch}")
+            val generatedPalette = Palette.from(bitmap)
+                .clearFilters()
+                .generate()
             
             val hasSwatches = listOfNotNull(
                 generatedPalette.vibrantSwatch,
@@ -115,9 +117,12 @@ fun App() {
             color(Color("#ffffff"))
             margin(0.px)
             padding(0.px)
+            minHeight(100.vh)
+        }
+        "#root" {
+            width(100.percent)
             display(DisplayStyle.Flex)
             justifyContent(JustifyContent.Center)
-            minHeight(100.vh)
         }
     }
 
@@ -125,11 +130,12 @@ fun App() {
         style {
             display(DisplayStyle.Flex)
             flexDirection(FlexDirection.Column)
-            alignItems(AlignItems.Center)
+            alignItems(AlignItems.Stretch)
             maxWidth(1000.px)
             width(100.percent)
-            padding(40.px)
-            gap(32.px)
+            padding(5.percent)
+            gap(2.cssRem)
+            property("box-sizing", "border-box")
         }
     }) {
         // Header
@@ -140,8 +146,8 @@ fun App() {
         }) {
             H1({
                 style {
-                    fontSize(3.cssRem)
-                    marginBottom(8.px)
+                    property("font-size", clamp(2.cssRem, 5.vw, 3.cssRem))
+                    marginBottom(0.5.cssRem)
                     color(Color("#ffffff"))
                 }
             }) {
@@ -149,7 +155,7 @@ fun App() {
             }
             P({
                 style {
-                    fontSize(1.2.cssRem)
+                    fontSize(1.1.cssRem)
                     color(Color("#aaaaaa"))
                     margin(0.px)
                 }
@@ -172,6 +178,7 @@ fun App() {
             style {
                 width(100.percent)
                 maxWidth(600.px)
+                property("align-self", "center")
                 backgroundColor(if (isDragging) Color("#2a2a2a") else Color("#1e1e1e"))
                 borderRadius(24.px)
                 overflow("hidden")
@@ -263,6 +270,7 @@ fun App() {
                     color(Color("#ff6b6b"))
                     width(100.percent)
                     maxWidth(600.px)
+                    property("align-self", "center")
                     textAlign("center")
                 }
             }) {
@@ -284,9 +292,10 @@ fun App() {
 
             Div({
                 style {
-                    display(DisplayStyle.Grid)
-                    gridTemplateColumns("repeat(auto-fill, minmax(160px, 1fr))")
-                    gap(24.px)
+                    display(DisplayStyle.Flex)
+                    flexWrap(FlexWrap.Wrap)
+                    justifyContent(JustifyContent.Center)
+                    gap(12.px)
                     width(100.percent)
                 }
             }) {
@@ -314,6 +323,9 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
 
     Div({
         style {
+            property("flex", "1 1 calc(33.333% - 8px)")
+            maxWidth(250.px)
+            minWidth(120.px)
             borderRadius(16.px)
             overflow("hidden")
             cursor("pointer")
@@ -325,6 +337,7 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
             flexDirection(FlexDirection.Column)
             justifyContent(JustifyContent.SpaceBetween)
             minHeight(120.px)
+            property("box-sizing", "border-box")
         }
         onClick {
             kotlinx.browser.window.navigator.clipboard.writeText(hexColor)
