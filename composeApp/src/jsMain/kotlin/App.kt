@@ -31,7 +31,7 @@ fun App() {
     // Global Styles
     Style {
         "body" {
-            fontFamily("system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Open Sans", "Helvetica Neue", "sans-serif")
+            fontFamily("Space Grotesk", "system-ui", "sans-serif")
             backgroundColor(Color("#121212"))
             color(Color("#ffffff"))
             margin(0.px)
@@ -113,7 +113,9 @@ fun App() {
                 Img(src = imageUrl!!) {
                     style {
                         width(100.percent)
-                        display(DisplayStyle.Block) // Remove bottom gap
+                        maxHeight(400.px)
+                        property("object-fit", "contain")
+                        display(DisplayStyle.Block)
                     }
                 }
                 // Change Image Overlay
@@ -181,18 +183,30 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
     val hexColor = "#" + (swatch.rgb.toUInt().toString(16).takeLast(6).uppercase())
     var copied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    
+    // Calculate if text should be light or dark based on background luminance
+    val r = (swatch.rgb shr 16) and 0xFF
+    val g = (swatch.rgb shr 8) and 0xFF
+    val b = swatch.rgb and 0xFF
+    val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    val textColor = if (luminance > 0.5) "rgba(0,0,0,0.8)" else "rgba(255,255,255,0.9)"
+    val textColorMuted = if (luminance > 0.5) "rgba(0,0,0,0.5)" else "rgba(255,255,255,0.6)"
 
     Div({
         style {
-            backgroundColor(Color("#1e1e1e")) // Card bg
             borderRadius(16.px)
             overflow("hidden")
             cursor("pointer")
             property("box-shadow", "0 4px 6px rgba(0,0,0,0.1)")
             property("transition", "transform 0.2s ease")
+            backgroundColor(Color("rgb($r, $g, $b)"))
+            padding(16.px)
+            display(DisplayStyle.Flex)
+            flexDirection(FlexDirection.Column)
+            justifyContent(JustifyContent.SpaceBetween)
+            minHeight(120.px)
         }
         onClick {
-            // Copy to clipboard
             kotlinx.browser.window.navigator.clipboard.writeText(hexColor)
             scope.launch {
                 copied = true
@@ -201,63 +215,68 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
             }
         }
     }) {
-        // Color Block
+        // Swatch name at top
         Div({
             style {
-                height(120.px)
-                backgroundColor(Color("rgb(${swatch.rgb shr 16 and 0xFF}, ${swatch.rgb shr 8 and 0xFF}, ${swatch.rgb and 0xFF})"))
-                display(DisplayStyle.Flex)
-                justifyContent(JustifyContent.Center)
-                alignItems(AlignItems.Center)
+                fontSize(0.75.cssRem)
+                fontWeight("600")
+                color(Color(textColorMuted))
+                property("text-transform", "uppercase")
+                property("letter-spacing", "0.05em")
             }
         }) {
-            if (copied) {
-                Div({
-                    style {
-                        backgroundColor(Color("rgba(0,0,0,0.5)"))
-                        color(Color.white)
-                        padding(8.px, 16.px)
-                        borderRadius(20.px)
-                        fontWeight("bold")
-                    }
-                }) {
-                    Text("Copied!")
-                }
-            }
+            Text(name)
         }
-
-        // Info Block
+        
+        // Hex color and copy icon at bottom
         Div({
             style {
-                padding(16.px)
+                display(DisplayStyle.Flex)
+                alignItems(AlignItems.Center)
+                justifyContent(JustifyContent.SpaceBetween)
             }
         }) {
             Div({
                 style {
-                    fontSize(0.8.cssRem)
+                    fontSize(1.1.cssRem)
                     fontWeight("bold")
-                    color(Color("rgba(255,255,255,0.6)"))
-                    marginBottom(4.px)
+                    color(Color(textColor))
                 }
             }) {
-                Text(name)
+                Text(if (copied) "Copied!" else hexColor)
             }
-            Div({
+            
+            // Material 3 content_copy icon (SVG)
+            Svg(viewBox = "0 0 24 24", {
                 style {
-                    fontSize(1.2.cssRem)
-                    fontWeight("bold")
-                    color(Color.white)
-                    display(DisplayStyle.Flex)
-                    alignItems(AlignItems.Center)
-                    justifyContent(JustifyContent.SpaceBetween)
+                    width(18.px)
+                    height(18.px)
+                    property("fill", textColorMuted)
                 }
             }) {
-                Text(hexColor)
-                // Copy Icon (Unicode)
-                Span({ style { fontSize(1.cssRem); opacity(0.5) } }) {
-                    Text("📋")
-                }
+                Path("M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z")
             }
         }
     }
+}
+
+@Composable
+fun Svg(viewBox: String, attrs: AttrBuilderContext<org.w3c.dom.svg.SVGElement>? = null, content: @Composable ElementScope<org.w3c.dom.svg.SVGElement>.() -> Unit) {
+    TagElement(
+        elementBuilder = { document.createElementNS("http://www.w3.org/2000/svg", "svg") as org.w3c.dom.svg.SVGElement },
+        applyAttrs = {
+            attr("viewBox", viewBox)
+            attrs?.invoke(this)
+        },
+        content = content
+    )
+}
+
+@Composable
+fun ElementScope<org.w3c.dom.svg.SVGElement>.Path(d: String) {
+    TagElement(
+        elementBuilder = { document.createElementNS("http://www.w3.org/2000/svg", "path") as org.w3c.dom.svg.SVGPathElement },
+        applyAttrs = { attr("d", d) },
+        content = {}
+    )
 }
