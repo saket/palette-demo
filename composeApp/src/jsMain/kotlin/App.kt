@@ -46,9 +46,14 @@ fun App() {
         palette = null
         errorMessage = null
         try {
-            val bytes = resizeImageForPalette(file)
+            // Use our own nearest-neighbor scaling and disable kmpalette's internal scaling
+            // to work around a bug where kmpalette's Skiko scaling uses bilinear interpolation
+            // which causes vibrant colors to be averaged away.
+            // See: https://github.com/jordond/kmpalette/issues/224
+            val bytes = resizeImageForPaletteExtraction(file)
             val bitmap = ByteArrayLoader.load(bytes)
             val generatedPalette = Palette.from(bitmap)
+                .resizeBitmapArea(-1)  // Disable internal scaling - we already scaled
                 .clearFilters()
                 .generate()
             
