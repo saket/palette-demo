@@ -198,29 +198,11 @@ fun App() {
             H1({
                 style {
                     property("font-size", clamp(2.cssRem, 5.vw, 3.cssRem))
-                    marginBottom(0.5.cssRem)
+                    margin(0.px)
                     property("color", "var(--text-primary)")
                 }
             }) {
                 Text("palette")
-            }
-            P({
-                style {
-                    fontSize(1.1.cssRem)
-                    property("color", "var(--text-secondary)")
-                    margin(0.px)
-                }
-            }) {
-                Text("A demo of the ")
-                A(href = "https://developer.android.com/develop/ui/views/graphics/palette-colors", {
-                    style {
-                        property("color", "var(--text-secondary)")
-                    }
-                    attr("target", "_blank")
-                }) {
-                    Text("Jetpack Palette")
-                }
-                Text(" library")
             }
         }
 
