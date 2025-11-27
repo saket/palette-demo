@@ -15,9 +15,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import kotlinx.browser.window
 import org.w3c.dom.DragEvent
+import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.url.URL
 import org.w3c.files.File
 import org.w3c.files.get
+import kotlin.math.max
 
 fun clamp(min: CSSNumeric, preferred: CSSNumeric, max: CSSNumeric): String =
     "clamp($min, $preferred, $max)"
@@ -43,7 +46,7 @@ fun App() {
         palette = null
         errorMessage = null
         try {
-            val bytes = file.readBytes()
+            val bytes = resizeImageForPalette(file)
             val bitmap = ByteArrayLoader.load(bytes)
             val generatedPalette = Palette.from(bitmap)
                 .clearFilters()
@@ -67,7 +70,7 @@ fun App() {
         } catch (e: Exception) {
             console.error("Error loading image: ${e.message}")
             e.printStackTrace()
-            errorMessage = "Error: ${e.message}"
+            errorMessage = e.message ?: "Failed to load image"
         }
     }
     
@@ -202,7 +205,7 @@ fun App() {
                     property("color", "var(--text-primary)")
                 }
             }) {
-                Text("palette")
+                Text("palette demo")
             }
         }
 
