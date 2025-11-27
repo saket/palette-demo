@@ -201,11 +201,32 @@ fun App() {
             H1({
                 style {
                     property("font-size", clamp(2.cssRem, 5.vw, 3.cssRem))
-                    margin(0.px)
+                    marginBottom(0.5.cssRem)
                     property("color", "var(--text-primary)")
                 }
             }) {
                 Text("palette demo")
+            }
+            P({
+                style {
+                    fontSize(0.95.cssRem)
+                    property("color", "var(--text-secondary)")
+                    margin(0.px)
+                }
+            }) {
+                A(href = "https://github.com/saket/palette-demo/", {
+                    style { property("color", "var(--text-secondary)") }
+                    attr("target", "_blank")
+                }) {
+                    Text("github")
+                }
+                Text(" • ")
+                A(href = "https://developer.android.com/develop/ui/views/graphics/palette-colors", {
+                    style { property("color", "var(--text-secondary)") }
+                    attr("target", "_blank")
+                }) {
+                    Text("jetpack palette documentation")
+                }
             }
         }
 
@@ -330,7 +351,7 @@ fun App() {
                     display(DisplayStyle.Flex)
                     flexWrap(FlexWrap.Wrap)
                     justifyContent(JustifyContent.Center)
-                    gap(12.px)
+                    gap(6.px)
                     width(100.percent)
                 }
             }) {
