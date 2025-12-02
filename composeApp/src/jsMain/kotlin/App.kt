@@ -393,8 +393,20 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
             overflow("hidden")
             cursor("pointer")
 
+            val (borderR, borderG, borderB) = if (luminance > 0.5) {
+                // Light swatch: darken the border
+                Triple((r * 0.7).toInt(), (g * 0.7).toInt(), (b * 0.7).toInt())
+            } else {
+                // Dark swatch: lighten the border
+                Triple(
+                    (r + (255 - r) * 0.3).toInt(),
+                    (g + (255 - g) * 0.3).toInt(),
+                    (b + (255 - b) * 0.3).toInt()
+                )
+            }
             property("transition", "transform 0.2s ease")
             backgroundColor(Color("rgb($r, $g, $b)"))
+            property("border", "1px solid rgb($borderR, $borderG, $borderB)")
             padding(16.px)
             display(DisplayStyle.Flex)
             flexDirection(FlexDirection.Column)
