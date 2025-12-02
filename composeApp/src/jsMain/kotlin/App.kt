@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.yield
 import kotlinx.browser.window
 import org.w3c.dom.DragEvent
+import org.w3c.dom.events.Event
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.url.URL
@@ -113,16 +114,38 @@ fun App() {
             }
         }
         
+        val onPaste: (Event) -> Unit = { event ->
+            val clipboardData = event.asDynamic().clipboardData
+            val items = clipboardData?.items
+            if (items != null) {
+                val length = items.length as Int
+                for (i in 0 until length) {
+                    val item = items[i]
+                    val type = item.type as String?
+                    if (type?.startsWith("image/") == true) {
+                        val file = item.getAsFile() as File?
+                        if (file != null) {
+                            event.preventDefault()
+                            scope.launch { loadImage(file) }
+                        }
+                        break
+                    }
+                }
+            }
+        }
+        
         document.body?.addEventListener("dragover", onDragOver.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         document.body?.addEventListener("dragenter", onDragEnter.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         document.body?.addEventListener("dragleave", onDragLeave.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         document.body?.addEventListener("drop", onDrop.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+        document.body?.addEventListener("paste", onPaste.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         
         onDispose {
             document.body?.removeEventListener("dragover", onDragOver.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
             document.body?.removeEventListener("dragenter", onDragEnter.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
             document.body?.removeEventListener("dragleave", onDragLeave.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
             document.body?.removeEventListener("drop", onDrop.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
+            document.body?.removeEventListener("paste", onPaste.unsafeCast<(org.w3c.dom.events.Event) -> Unit>())
         }
     }
 
