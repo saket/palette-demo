@@ -7,9 +7,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.get
-import org.w3c.dom.CanvasRenderingContext2D
-import org.w3c.dom.HTMLCanvasElement
-import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.HTMLInputElement
 import org.w3c.dom.url.URL
 import org.w3c.files.File
@@ -67,88 +64,4 @@ suspend fun File.readBytes(): ByteArray = suspendCancellableCoroutine { cont ->
         null
     }
     reader.readAsArrayBuffer(this)
-}
-
-private const val PALETTE_TARGET_AREA = 112 * 112  // kmpalette's default resize area
-
-class UnsupportedFormatException(val format: String) : Exception("$format images are not supported on this browser.")
-
-/**
- * Prepares an image specifically for kmpalette by scaling it down to a small size
- * using nearest-neighbor sampling (no interpolation). This matches Android's 
- * Bitmap.createScaledBitmap(filter=false) behavior and preserves distinct color values.
- * 
- * kmpalette has a bug where its internal Skiko scaling uses bilinear interpolation,
- * which causes vibrant colors to be averaged away. By pre-scaling here and disabling
- * kmpalette's internal scaling (via resizeBitmapArea(-1)), we get correct results.
- * 
- * See: https://github.com/jordond/kmpalette/issues/224
- */
-suspend fun resizeImageForPaletteExtraction(file: File): ByteArray {
-    val format = file.type.substringAfter("/").uppercase().ifEmpty {
-        file.name.substringAfterLast('.', "").uppercase()
-    }
-    val objectUrl = URL.createObjectURL(file)
-    try {
-        val img = loadHtmlImage(objectUrl, format)
-        
-        val originalWidth = img.naturalWidth
-        val originalHeight = img.naturalHeight
-        
-        if (originalWidth == 0 || originalHeight == 0) {
-            throw UnsupportedFormatException(format.ifEmpty { "Unknown" })
-        }
-        
-        val currentArea = originalWidth * originalHeight
-        val scale = if (currentArea > PALETTE_TARGET_AREA) {
-            kotlin.math.sqrt(PALETTE_TARGET_AREA.toDouble() / currentArea)
-        } else {
-            1.0
-        }
-        val newWidth = (originalWidth * scale).toInt().coerceAtLeast(1)
-        val newHeight = (originalHeight * scale).toInt().coerceAtLeast(1)
-        
-        val canvas = document.createElement("canvas") as HTMLCanvasElement
-        canvas.width = newWidth
-        canvas.height = newHeight
-        
-        val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
-        // Disable image smoothing for nearest-neighbor scaling
-        // This preserves distinct color values instead of averaging them
-        ctx.asDynamic().imageSmoothingEnabled = false
-        ctx.drawImage(img, 0.0, 0.0, newWidth.toDouble(), newHeight.toDouble())
-        
-        return canvasToBytes(canvas)
-    } finally {
-        URL.revokeObjectURL(objectUrl)
-    }
-}
-
-private suspend fun loadHtmlImage(src: String, format: String): HTMLImageElement = suspendCancellableCoroutine { cont ->
-    val img = document.createElement("img") as HTMLImageElement
-    img.onload = {
-        cont.resume(img)
-        null
-    }
-    img.onerror = { _, _, _, _, _ ->
-        cont.resumeWithException(UnsupportedFormatException(format.ifEmpty { "Unknown" }))
-        null
-    }
-    img.src = src
-}
-
-private fun canvasToBytes(canvas: HTMLCanvasElement): ByteArray {
-    // Use toDataURL for synchronous, reliable PNG conversion
-    val dataUrl = canvas.toDataURL("image/png")
-    // Format: "data:image/png;base64,iVBORw0KGgo..."
-    val base64 = dataUrl.substringAfter("base64,")
-    return base64ToByteArray(base64)
-}
-
-private fun base64ToByteArray(base64: String): ByteArray {
-    // Use browser's atob() to decode base64
-    val binaryString = kotlinx.browser.window.asDynamic().atob(base64) as String
-    return ByteArray(binaryString.length) { i ->
-        binaryString[i].code.toByte()
-    }
 }

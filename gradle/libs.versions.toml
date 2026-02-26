@@ -1,7 +1,7 @@
 [versions]
-kotlin = "2.0.20"
-compose = "1.7.0"
-kmpalette = "3.1.0"
+kotlin = "2.3.10"
+compose = "1.10.1"
+kmpalette = "4.0.0-beta01"
 coroutines = "1.9.0"
 coil = "3.0.4"
 ktor = "3.0.1"
@@ -29,9 +29,8 @@ ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 kotlin-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
 # KMPalette
-kmpalette-core = { module = "com.kmpalette:kmpalette-core", version.ref = "kmpalette" }
-kmpalette-extensions-bytearray = { module = "com.kmpalette:extensions-bytearray", version.ref = "kmpalette" }
-kmpalette-extensions-network = { module = "com.kmpalette:extensions-network", version.ref = "kmpalette" }
+kmpalette-core = { module = "com.materialkolor.palette:core", version.ref = "kmpalette" }
+kmpalette-extensions-network = { module = "com.materialkolor.palette:extensions-network", version.ref = "kmpalette" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

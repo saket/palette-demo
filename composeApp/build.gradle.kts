@@ -8,14 +8,12 @@ plugins {
 
 kotlin {
     js(IR) {
-        moduleName = "composeApp"
+        outputModuleName.set("composeApp")
         browser {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static = (static ?: mutableListOf()).apply {
-                        add(project.rootDir.path)
-                    }
+                    static(project.rootDir.path)
                 }
             }
         }
@@ -29,14 +27,13 @@ kotlin {
                 implementation(libs.compose.html.core)
                 
                 // Compose UI only for ImageBitmap (used by kmpalette)
-                implementation(compose.ui)
+                implementation(libs.compose.ui)
                 
                 // Coroutines
                 implementation(libs.kotlin.coroutines.core)
                 
                 // kmpalette
                 implementation(libs.kmpalette.core)
-                implementation(libs.kmpalette.extensions.bytearray)
             }
         }
     }

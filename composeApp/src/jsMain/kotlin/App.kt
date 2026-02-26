@@ -10,6 +10,7 @@ import org.jetbrains.compose.web.css.*
 import org.jetbrains.skiko.wasm.onWasmReady
 import com.kmpalette.loader.ByteArrayLoader
 import com.kmpalette.palette.graphics.Palette
+import com.kmpalette.rememberPaletteState
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.attributes.accept
@@ -43,35 +44,34 @@ fun App() {
     var palette by remember { mutableStateOf<Palette?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val paletteState = rememberPaletteState()
     
     suspend fun loadImage(file: File) {
         imageUrl = URL.createObjectURL(file)
         palette = null
         errorMessage = null
         try {
-            // Use our own nearest-neighbor scaling and disable kmpalette's internal scaling
-            // to work around a bug where kmpalette's Skiko scaling uses bilinear interpolation
-            // which causes vibrant colors to be averaged away.
-            // See: https://github.com/jordond/kmpalette/issues/224
-            val bytes = resizeImageForPaletteExtraction(file)
+            val bytes = file.readBytes()
             val bitmap = ByteArrayLoader.load(bytes)
-            val generatedPalette = Palette.from(bitmap)
-                .resizeBitmapArea(-1)  // Disable internal scaling - we already scaled
-                .clearFilters()
-                .generate()
+            paletteState.generate(bitmap)
+            val generatedPalette = paletteState.palette
             
-            val hasSwatches = listOfNotNull(
-                generatedPalette.vibrantSwatch,
-                generatedPalette.darkVibrantSwatch,
-                generatedPalette.lightVibrantSwatch,
-                generatedPalette.mutedSwatch,
-                generatedPalette.darkMutedSwatch,
-                generatedPalette.lightMutedSwatch,
-                generatedPalette.dominantSwatch
-            ).isNotEmpty()
-            
-            if (hasSwatches) {
-                palette = generatedPalette
+            if (generatedPalette != null) {
+                val hasSwatches = listOfNotNull(
+                    generatedPalette.vibrantSwatch,
+                    generatedPalette.darkVibrantSwatch,
+                    generatedPalette.lightVibrantSwatch,
+                    generatedPalette.mutedSwatch,
+                    generatedPalette.darkMutedSwatch,
+                    generatedPalette.lightMutedSwatch,
+                    generatedPalette.dominantSwatch
+                ).isNotEmpty()
+                
+                if (hasSwatches) {
+                    palette = generatedPalette
+                } else {
+                    errorMessage = "No colors could be extracted from this image."
+                }
             } else {
                 errorMessage = "No colors could be extracted from this image."
             }
@@ -395,14 +395,15 @@ fun App() {
 
 @Composable
 fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: String) {
-    val hexColor = "#" + (swatch.rgb.toUInt().toString(16).takeLast(6).uppercase())
+    val rgb = swatch.rgb.toInt()
+    val hexColor = "#" + (rgb.toUInt().toString(16).takeLast(6).uppercase())
     var copied by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     
     // Calculate if text should be light or dark based on background luminance
-    val r = (swatch.rgb shr 16) and 0xFF
-    val g = (swatch.rgb shr 8) and 0xFF
-    val b = swatch.rgb and 0xFF
+    val r = (rgb shr 16) and 0xFF
+    val g = (rgb shr 8) and 0xFF
+    val b = rgb and 0xFF
     val luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
     val textColor = if (luminance > 0.5) "rgba(0,0,0,0.8)" else "rgba(255,255,255,0.9)"
     val textColorMuted = if (luminance > 0.5) "rgba(0,0,0,0.5)" else "rgba(255,255,255,0.6)"
@@ -416,17 +417,9 @@ fun SwatchCard(swatch: com.kmpalette.palette.graphics.Palette.Swatch, name: Stri
             overflow("hidden")
             cursor("pointer")
 
-            val (borderR, borderG, borderB) = if (luminance > 0.5) {
-                // Light swatch: darken the border
-                Triple((r * 0.7).toInt(), (g * 0.7).toInt(), (b * 0.7).toInt())
-            } else {
-                // Dark swatch: lighten the border
-                Triple(
-                    (r + (255 - r) * 0.3).toInt(),
-                    (g + (255 - g) * 0.3).toInt(),
-                    (b + (255 - b) * 0.3).toInt()
-                )
-            }
+            val borderR = if (luminance > 0.5) r * 7 / 10 else r + (255 - r) * 3 / 10
+            val borderG = if (luminance > 0.5) g * 7 / 10 else g + (255 - g) * 3 / 10
+            val borderB = if (luminance > 0.5) b * 7 / 10 else b + (255 - b) * 3 / 10
             property("transition", "transform 0.2s ease")
             backgroundColor(Color("rgb($r, $g, $b)"))
             property("border", "1px solid rgb($borderR, $borderG, $borderB)")
